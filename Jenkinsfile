@@ -12,7 +12,7 @@ pipeline {
       echo 'Building..'
       // Here you can define commands for your build
       echo "Building ${NEW_VERSION}"
-      sh "nvm install"
+      bat "nvm install"
       }
     }
     stage('Test') {
