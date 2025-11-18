@@ -1,5 +1,3 @@
-flag = true
-
 pipeline {
   agent any
   environment{
