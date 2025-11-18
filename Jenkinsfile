@@ -1,5 +1,8 @@
 pipeline {
   agent any
+  tools {
+    maven 'Maven'
+  }
   environment{
     NEW_VERSION = '1.3.0'
   }
@@ -8,6 +11,8 @@ pipeline {
       steps {
       echo 'Building..'
       // Here you can define commands for your build
+      echo "Building ${NEW_VERSION}"
+      sh "nvm install"
       }
     }
     stage('Test') {
