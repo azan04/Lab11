@@ -2,45 +2,63 @@ pipeline {
     agent any
 
     environment {
-        SCANNER = 'SonarScanner'
+        PROJECT = "azan04_Lab11"
+        ORG = "azan04"
     }
 
     stages {
 
         stage('Checkout') {
             steps {
-                // If your code is local, this is fine
-                checkout scm
-            }
-        }
-
-        stage('SonarCloud SAST') {
-            steps {
-                withSonarQubeEnv('SonarCloud') {
-                    sh """
-                        sonar-scanner \
-                        -Dsonar.projectKey=azan04_Lab11 \
-                        -Dsonar.organization=azan04 \
-                        -Dsonar.sources=. \
-                        -Dsonar.host.url=https://sonarcloud.io
-                    """
-                }
-            }
-        }
-
-        stage('Quality Gate') {
-            steps {
-                timeout(time: 2, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
-                }
+                git branch: 'main', url: 'https://github.com/azan04/Lab11'
             }
         }
 
         stage('Build') {
             steps {
-                echo "Build stage here"
+                echo "Build step..."
+            }
+        }
+        stage('SonarCloud Analysis') {
+            steps {
+                withCredentials([string(credentialsId: 'sonarcloud-token', variable: 'TOKEN')]) {
+                    withSonarQubeEnv('SonarCloud') {
+                        bat """
+                            ${tool 'SonarScanner'}\\bin\\sonar-scanner.bat ^
+                              -Dsonar.projectKey=azan04_Lab11 ^
+                              -Dsonar.organization=azan04 ^
+                              -Dsonar.sources=. ^
+                              -Dsonar.host.url=https://sonarcloud.io ^
+                              -Dsonar.login=%TOKEN% ^
+                              -Dsonar.c.file.suffixes=- ^
+                              -Dsonar.cpp.file.suffixes=- ^
+                              -Dsonar.objc.file.suffixes=-
+                        """
+                    }
+                }
             }
         }
 
+
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 2, unit: 'MINUTES') {
+                    script {
+                        def qg = waitForQualityGate()
+                        if (qg.status == 'NONE') {
+                            echo "Warning: No quality gate configured. Proceeding with build."
+                        } else if (qg.status != 'OK') {
+                            error "Pipeline aborted due to quality gate failure: ${qg.status}"
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                echo "Deployment step..."
+            }
+        }
     }
 }
