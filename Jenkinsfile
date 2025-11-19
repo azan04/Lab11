@@ -1,47 +1,46 @@
 pipeline {
-  agent any
-  parameters {
-    string(name: 'VERSION', defaultValue:'',description:'version to deploy on prod')
-    choice(name: 'VERSION', choices:['1.1.0', '1.2.0', '1.3.0'],description:'')
-    booleanParam(name:'executeTests', defaultValue: true, description:'')
-  }
-  environment{
-    NEW_VERSION = '1.3.0'
-  }
-  stages {
-    stage('Build') {
-      steps {
-      echo 'Building..'
-      // Here you can define commands for your build
-      echo "Building ${NEW_VERSION}"
-      }
-    }
-    stage('Test') {
-      when{
-        expression{
-          params.executeTests
-        }
-      }
-      steps {       
-        echo 'Testing..'
-      // Here you can define commands for your tests
-      }
-    }
-    stage('Deploy') {
-      steps {
-      echo 'Deploying....'
-      // Here you can define commands for your deployment
-      }
-    }
-  }
-    post{
+    agent any
 
-      always {
-        echo 'Post build condition running'
-      }
-      failure {
-        echo 'Post Action if build failed'
-      }
-      
+    environment {
+        SCANNER = 'SonarScanner'
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                // If your code is local, this is fine
+                checkout scm
+            }
+        }
+
+        stage('SonarCloud SAST') {
+            steps {
+                withSonarQubeEnv('SonarCloud') {
+                    sh """
+                        sonar-scanner \
+                        -Dsonar.projectKey=azan04_Lab11 \
+                        -Dsonar.organization=azan04 \
+                        -Dsonar.sources=. \
+                        -Dsonar.host.url=https://sonarcloud.io
+                    """
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 2, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+
+        stage('Build') {
+            steps {
+                echo "Build stage here"
+            }
+        }
+
     }
 }
